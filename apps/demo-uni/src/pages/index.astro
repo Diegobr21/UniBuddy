@@ -1,0 +1,321 @@
+---
+import { deadlines, professors } from '../scripts/portal';
+const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Demo University · Student portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="wrap top__inner">
+        <div class="brand"><span class="brand__mark">DU</span><span><strong>Demo University</strong><br /><span class="muted">Student portal</span></span></div>
+        <span id="webmcp-status" class="pill pill--off" role="status">WebMCP: checking…</span>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <h1>Every procedure, also available to your AI assistant</h1>
+        <p class="lead">This fictional portal shows what a university gains by exposing its procedures with WebMCP and MCP: an assistant like MBA Buddy can request a certificate or book office hours for a student, in any language, using the same forms you see here.</p>
+      </section>
+
+      <div class="grid">
+        <section class="card" aria-labelledby="cert-title">
+          <h2 id="cert-title">Request a certificate</h2>
+          <form id="cert-form" class="form">
+            <label for="cert-type">Certificate</label>
+            <select id="cert-type" name="type">
+              <option value="enrolment">Enrolment certificate</option>
+              <option value="transcript">Academic transcript</option>
+            </select>
+            <label for="cert-lang">Language</label>
+            <select id="cert-lang" name="language">
+              <option value="en">English</option>
+              <option value="es">Spanish</option>
+            </select>
+            <button type="submit">Request</button>
+          </form>
+        </section>
+
+        <section class="card" aria-labelledby="oh-title">
+          <h2 id="oh-title">Book office hours</h2>
+          <form id="oh-form" class="form">
+            <label for="oh-prof">Professor</label>
+            <select id="oh-prof" name="professor">
+              {professors.map((p) => <option value={p}>{p}</option>)}
+            </select>
+            <label for="oh-date">Date</label>
+            <input id="oh-date" name="date" type="date" required />
+            <button type="submit">Book</button>
+          </form>
+        </section>
+
+        <section class="card" aria-labelledby="dl-title">
+          <h2 id="dl-title">Upcoming deadlines</h2>
+          <ul class="deadlines">
+            {deadlines.map((d) => <li><span>{d.item}</span><strong>{formatDate(d.date)}</strong></li>)}
+          </ul>
+        </section>
+      </div>
+
+      <section class="card activity" aria-labelledby="activity-title">
+        <h2 id="activity-title">Activity</h2>
+        <p class="muted" id="activity-empty">Requests made here, by you or by your assistant, appear in this list.</p>
+        <ul id="activity" class="activity__list" aria-live="polite"></ul>
+      </section>
+
+      <section class="explainer" aria-labelledby="how-title">
+        <h2 id="how-title">For universities: how this works</h2>
+        <ol>
+          <li><strong>WebMCP</strong> (in the browser): the page registers its actions, such as <code>request_certificate</code>, so an AI agent calls them directly instead of reading the screen and clicking.</li>
+          <li><strong>MCP server</strong> (coming next): the same actions as an API that MBA Buddy's chat can call, with the student's own permissions, and show the form inside the conversation.</li>
+          <li>Risky actions ask the student to confirm. The assistant only ever sees what that student could already see.</li>
+        </ol>
+        <p class="muted">To try WebMCP: Chrome with <code>chrome://flags/#enable-webmcp-testing</code> enabled and a WebMCP-capable agent extension.</p>
+      </section>
+    </main>
+
+    <script>
+      import { bookOfficeHours, requestCertificate } from '../scripts/portal';
+      import { registerTools } from '../scripts/webmcp';
+
+      const list = document.getElementById('activity')!;
+      const empty = document.getElementById('activity-empty')!;
+
+      function show(title: string, detail: unknown) {
+        empty.hidden = true;
+        const item = document.createElement('li');
+        const heading = document.createElement('strong');
+        heading.textContent = title;
+        const body = document.createElement('span');
+        body.textContent = Object.values(detail as Record<string, string>).join(' · ');
+        item.append(heading, body);
+        list.prepend(item);
+      }
+
+      document.getElementById('cert-form')!.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const data = new FormData(event.target as HTMLFormElement);
+        show('Certificate requested', requestCertificate({ type: data.get('type') as 'enrolment', language: data.get('language') as 'en' }));
+      });
+
+      document.getElementById('oh-form')!.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const data = new FormData(event.target as HTMLFormElement);
+        try {
+          show('Office hours booked', bookOfficeHours({ professor: String(data.get('professor')), date: String(data.get('date')) }));
+        } catch (error) {
+          show('Could not book', { error: (error as Error).message });
+        }
+      });
+
+      const status = document.getElementById('webmcp-status')!;
+      registerTools(show).then((names) => {
+        if (names.length) {
+          status.textContent = `WebMCP: ${names.length} tools ready`;
+          status.className = 'pill pill--on';
+          status.title = names.join(', ');
+        } else {
+          status.textContent = 'WebMCP: not available in this browser';
+        }
+      });
+    </script>
+
+    <style is:global>
+      :root {
+        --navy: #12355b;
+        --navy-pale: #e8eef5;
+        --ink: #14161a;
+        --muted: #5b6270;
+        --border: #dfe3e8;
+        --bg: #f5f7fa;
+        --ok: #00694f;
+        --ok-pale: #e6f8f2;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+      }
+      .wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      .top {
+        background: var(--navy);
+        color: #fff;
+      }
+      .top__inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding-top: 16px;
+        padding-bottom: 16px;
+        flex-wrap: wrap;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        line-height: 1.3;
+      }
+      .brand .muted {
+        color: #c9d6e5;
+        font-size: 13px;
+      }
+      .brand__mark {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        background: #fff;
+        color: var(--navy);
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .pill {
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .pill--off {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+      }
+      .pill--on {
+        background: var(--ok-pale);
+        color: var(--ok);
+      }
+      .hero {
+        padding: 40px 0 24px;
+        max-width: 760px;
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(28px, 4vw, 40px);
+        line-height: 1.1;
+        font-weight: 800;
+      }
+      h2 {
+        margin: 0 0 14px;
+        font-size: 18px;
+      }
+      .lead {
+        margin: 0;
+        font-size: 17px;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+      }
+      .form {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      label {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      select,
+      input {
+        min-height: 44px;
+        padding: 0 12px;
+        border-radius: 10px;
+        border: 1px solid #c9cfd8;
+        font: 400 15px Inter, sans-serif;
+        background: #fff;
+      }
+      button {
+        margin-top: 8px;
+        min-height: 46px;
+        border: 0;
+        border-radius: 12px;
+        background: var(--navy);
+        color: #fff;
+        font: 600 15px Inter, sans-serif;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #0c2742;
+      }
+      :focus-visible {
+        outline: 3px solid #2f6fb3;
+        outline-offset: 2px;
+      }
+      .deadlines {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .deadlines li {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        font-size: 14px;
+      }
+      .activity {
+        margin-top: 16px;
+      }
+      .activity__list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .activity__list li {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 12px;
+        border-radius: 10px;
+        background: var(--navy-pale);
+        font-size: 14px;
+      }
+      .explainer {
+        margin: 32px 0 48px;
+        max-width: 760px;
+        line-height: 1.6;
+      }
+      code {
+        background: var(--navy-pale);
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+    </style>
+  </body>
+</html>

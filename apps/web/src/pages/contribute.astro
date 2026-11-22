@@ -1,0 +1,148 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import Icon from '../components/Icon.astro';
+import BottomNav from '../components/BottomNav.astro';
+import { getUniversity, isMember, questions, topics } from '@unibuddy/data';
+import { getSession } from '../lib/session';
+
+const session = getSession(Astro.cookies);
+const uni = getUniversity(session.universityId);
+const member = isMember(session);
+const sent = Astro.url.searchParams.get('sent') === '1';
+const error = Astro.url.searchParams.get('error');
+---
+<AppLayout title="Share your experience">
+  <header class="topbar">
+    <div class="topbar__title">
+      <strong>Share what you learned</strong>
+      <span>About 5 minutes · helps the next class</span>
+    </div>
+    <span class="badge badge--red founder"><Icon name="star" size={14} />Founding contributor</span>
+  </header>
+
+  {!member ? (
+    <main class="content">
+      <div class="card">
+        <strong>Only verified members can contribute</strong>
+        <p class="small">Sign in with your university so we know your story comes from someone who has been there.</p>
+        <a class="btn btn--primary" href={uni ? `/sign-in?uni=${uni.id}` : '/'}>Sign in</a>
+      </div>
+    </main>
+  ) : sent ? (
+    <main class="content">
+      <div class="card thanks">
+        <span class="thanks__icon"><Icon name="check" size={28} color="#00694f" /></span>
+        <strong>Thank you! Your story is in the review queue.</strong>
+        <p class="small">A moderator checks it, and once approved it goes live in the next weekly release.</p>
+        <a class="btn btn--primary" href="/contribute">Share another one</a>
+        <a class="link-btn" href="/chat">Back to the chat</a>
+      </div>
+    </main>
+  ) : (
+    <main class="content">
+      <form method="post" action="/api/contribute" class="form">
+        {error && <p class="notice error" role="alert">Please pick a topic, a question and write at least a couple of sentences.</p>}
+
+        <fieldset>
+          <legend class="label">1. Pick a topic</legend>
+          <div class="chips">
+            {topics.map((t) => (
+              <label class="chip chip--radio">
+                <input type="radio" name="topic" value={t.id} class="visually-hidden" required checked={t.id === 'housing'} />
+                {t.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div class="field">
+          <label class="label" for="question">2. Choose a question</label>
+          <select id="question" name="question" class="select" required>
+            {topics.map((t) => (
+              <optgroup label={t.label}>
+                {questions.filter((q) => q.topicId === t.id).map((q) => <option value={q.id} selected={q.id === 'housing-wish'}>{q.text}</option>)}
+              </optgroup>
+            ))}
+            <option value="other">Other: write my own question</option>
+          </select>
+          <label class="small" for="own-question">If you picked "Other", write your question:</label>
+          <input id="own-question" name="ownQuestion" class="input" maxlength="160" placeholder="Your question" />
+        </div>
+
+        <div class="field">
+          <label class="label" for="story">3. Your answer</label>
+          <textarea id="story" name="text" class="textarea" required minlength="40" maxlength="2000" placeholder="Be candid: what actually helped, and what you would do differently."></textarea>
+          <span class="small">Write in any language. Your name is never shown.</span>
+        </div>
+
+        <fieldset>
+          <legend class="label">4. Who should see it?</legend>
+          <label class="radio"><input type="radio" name="visibility" value="public" />Everyone (public)</label>
+          <label class="radio"><input type="radio" name="visibility" value="university" checked />Only {uni?.shortName} students and alumni</label>
+        </fieldset>
+
+        <div class="submit">
+          <button type="submit" class="btn btn--primary btn--block">Send for review</button>
+          <span class="small center">A moderator checks every story before it is published.</span>
+        </div>
+      </form>
+    </main>
+  )}
+
+  <BottomNav current="contribute" />
+</AppLayout>
+
+<style>
+  .founder {
+    border-radius: 16px;
+    min-height: 32px;
+  }
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .chip--radio {
+    display: inline-flex;
+    align-items: center;
+  }
+  .chip--radio:has(input:checked) {
+    background: var(--red);
+    border-color: var(--red);
+    color: var(--white);
+    font-weight: 600;
+  }
+  .chip--radio:has(input:focus-visible) {
+    outline: 3px solid var(--red);
+    outline-offset: 2px;
+  }
+  .submit {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .center {
+    text-align: center;
+  }
+  .error {
+    background: var(--warn-pale);
+    color: var(--warn);
+  }
+  .thanks {
+    align-items: center;
+    text-align: center;
+    padding: 24px;
+  }
+  .thanks__icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    background: var(--ok-pale);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .thanks .btn {
+    width: 100%;
+  }
+</style>

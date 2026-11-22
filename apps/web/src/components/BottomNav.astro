@@ -1,0 +1,18 @@
+---
+import { canModerate } from '@unibuddy/data';
+import { getSession } from '../lib/session';
+import Icon from './Icon.astro';
+
+interface Props {
+  current: 'chat' | 'contribute' | 'moderate';
+}
+const { current } = Astro.props;
+const session = getSession(Astro.cookies);
+---
+<nav class="bottom-nav" aria-label="Main">
+  <a href="/chat" aria-current={current === 'chat' ? 'page' : undefined}><Icon name="chat" size={22} />Chat</a>
+  <a href="/contribute" aria-current={current === 'contribute' ? 'page' : undefined}><Icon name="edit" size={22} />Contribute</a>
+  {canModerate(session) && (
+    <a href="/moderate" aria-current={current === 'moderate' ? 'page' : undefined}><Icon name="shield" size={22} />Moderate</a>
+  )}
+</nav>

@@ -1,0 +1,117 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import Icon from '../components/Icon.astro';
+import { getUniversity } from '@unibuddy/data';
+
+const uni = getUniversity(Astro.url.searchParams.get('uni'));
+if (!uni) return Astro.redirect('/');
+---
+<AppLayout title={`Sign in with ${uni.shortName}`}>
+  <header class="top">
+    <a href="/" class="btn btn--icon" aria-label="Back to university list"><Icon name="back" /></a>
+  </header>
+
+  <main class="content">
+    <div class="hero">
+      <span class="logo">{uni.shortName}</span>
+      <h1>Sign in with {uni.shortName}</h1>
+      <p class="lead">Use your usual university login. We only learn that you are a student or alumnus, never your password.</p>
+    </div>
+
+    <div class="card">
+      <span class="label">Signing in unlocks</span>
+      <ul class="perks">
+        <li><Icon name="check" color="#c0001a" />Stories shared only with {uni.shortName} students</li>
+        <li><Icon name="check" color="#c0001a" />Help with intranet forms and deadlines</li>
+        <li><Icon name="check" color="#c0001a" />Sharing your own experience with future classes</li>
+      </ul>
+    </div>
+
+    <div class="actions">
+      <form method="post" action="/api/session">
+        <input type="hidden" name="role" value="student" />
+        <input type="hidden" name="uni" value={uni.id} />
+        <input type="hidden" name="next" value="/chat" />
+        <button type="submit" class="btn btn--primary btn--block"><Icon name="lock" size={18} />Continue with {uni.shortName} portal</button>
+      </form>
+      <form method="post" action="/api/session">
+        <input type="hidden" name="role" value="student" />
+        <input type="hidden" name="uni" value={uni.id} />
+        <input type="hidden" name="next" value="/chat" />
+        <button type="submit" class="btn btn--block">Use my university email instead</button>
+      </form>
+      <form method="post" action="/api/session">
+        <input type="hidden" name="role" value="visitor" />
+        <input type="hidden" name="uni" value={uni.id} />
+        <input type="hidden" name="next" value="/chat" />
+        <button type="submit" class="link-btn as-link">Continue as a visitor</button>
+      </form>
+      <p class="small center">Prototype: both buttons simulate the university login. By signing in you agree to our privacy notice and can delete your data at any time.</p>
+    </div>
+  </main>
+</AppLayout>
+
+<style>
+  .top {
+    padding: 20px 20px 0;
+  }
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+  }
+  .logo {
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    background: var(--red-pale);
+    color: var(--red);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 20px;
+  }
+  h1 {
+    font-size: 28px;
+  }
+  .perks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .perks li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  .actions {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .actions form {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+  }
+  .as-link {
+    border: 0;
+    background: none;
+    color: var(--red);
+    cursor: pointer;
+    font-family: var(--font);
+  }
+  .center {
+    text-align: center;
+    margin: 0;
+  }
+</style>

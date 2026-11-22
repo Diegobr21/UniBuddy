@@ -1,0 +1,181 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import Icon from '../components/Icon.astro';
+import BottomNav from '../components/BottomNav.astro';
+import Chat from '../components/Chat.tsx';
+import { getUniversity, isMember } from '@unibuddy/data';
+import { getSession } from '../lib/session';
+
+const session = getSession(Astro.cookies);
+const uni = getUniversity(session.universityId);
+const member = isMember(session);
+
+const roleLabel = {
+  visitor: 'Visitor · public answers only',
+  student: `Verified student · ${uni?.shortName}`,
+  moderator: `Moderator · ${uni?.shortName}`,
+  admin: `Admin · ${uni?.shortName}`,
+}[session.role];
+
+const suggestions = member
+  ? ['How do people find a flat?', 'Getting my NIE / TIE', 'When should I start recruiting?']
+  : ['How do people find a flat?', 'Student visa basics'];
+---
+<AppLayout title="Chat">
+  <header class="topbar">
+    <a href="/" class:list={['uni-badge', { 'uni-badge--member': member }]} aria-label="Change university">{uni?.shortName ?? 'All'}</a>
+    <div class="topbar__title">
+      <strong>MBA Buddy</strong>
+      <span class:list={{ verified: member }}>{member && <Icon name="shield" size={14} />}{roleLabel}</span>
+    </div>
+    {!member && <a class="btn btn--primary sign-in" href={uni ? `/sign-in?uni=${uni.id}` : '/'}>Sign in</a>}
+  </header>
+
+  <div class="notice-wrap">
+    <p class="notice"><Icon name="info" size={16} />You are chatting with an AI assistant. Answers come from verified student stories.</p>
+  </div>
+
+  <main class="chat-main">
+    <Chat client:load suggestions={suggestions} universityName={uni?.shortName ?? null} isMember={member} signInHref={uni ? `/sign-in?uni=${uni.id}` : '/'} />
+  </main>
+
+  {member && <BottomNav current="chat" />}
+</AppLayout>
+
+<style>
+  .uni-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    color: var(--ink-3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 12px;
+    text-decoration: none;
+  }
+  .uni-badge--member {
+    background: var(--red-pale);
+    color: var(--red);
+  }
+  .verified {
+    color: var(--red) !important;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .sign-in {
+    min-height: 40px;
+    border-radius: 12px;
+    font-size: 14px;
+  }
+  .notice-wrap {
+    padding: 12px 20px 0;
+  }
+  .notice {
+    margin: 0;
+  }
+  .chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 20px 12px;
+  }
+  :global(.chat) {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  :global(.chat__messages) {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  :global(.chat__empty) {
+    margin: 0;
+    color: var(--ink-3);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  :global(.chat__answer) {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  :global(.bubble) {
+    max-width: 88%;
+    padding: 12px 14px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  :global(.bubble p) {
+    margin: 0 0 10px;
+    white-space: pre-line;
+  }
+  :global(.bubble--student) {
+    align-self: flex-end;
+    border-radius: 16px 16px 4px 16px;
+    background: var(--red);
+    color: var(--white);
+  }
+  :global(.bubble--assistant) {
+    align-self: flex-start;
+    border-radius: 16px 16px 16px 4px;
+    background: var(--white);
+    border: 1px solid var(--border);
+  }
+  :global(.locked .btn) {
+    min-height: 44px;
+  }
+  :global(.handoff) {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    color: var(--red-deep);
+  }
+  :global(.handoff__text) {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    color: var(--ink);
+    font-size: 13px;
+  }
+  :global(.handoff__btn) {
+    min-height: 40px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+  :global(.chat__composer) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 6px 6px 14px;
+    border-radius: 16px;
+    background: var(--white);
+    border: 1px solid var(--border-2);
+  }
+  :global(.chat__composer input) {
+    flex: 1;
+    border: 0;
+    outline: none;
+    font: 400 16px var(--font);
+    background: transparent;
+  }
+  :global(.chat__send) {
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 12px;
+  }
+  :global(.chat__send:disabled),
+  :global(.chip:disabled) {
+    opacity: 0.5;
+    cursor: default;
+  }
+</style>

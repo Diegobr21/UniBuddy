@@ -1,0 +1,122 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Icon from '../../components/Icon.astro';
+import BottomNav from '../../components/BottomNav.astro';
+import ModeratorOnly from '../../components/ModeratorOnly.astro';
+import { canModerate, getUniversity } from '@unibuddy/data';
+import { getSession } from '../../lib/session';
+import { isFlagged, languageName, moderationScope, storyMeta } from '../../lib/moderation';
+
+const session = getSession(Astro.cookies);
+const allowed = canModerate(session);
+const tab = Astro.url.searchParams.get('tab') ?? 'review';
+
+const scope = allowed ? moderationScope(session) : [];
+const lists = {
+  review: scope.filter((s) => s.status === 'pending'),
+  flagged: scope.filter((s) => s.status === 'pending' && isFlagged(s)),
+  done: scope.filter((s) => s.status !== 'pending').slice(-6).reverse(),
+};
+const items = lists[tab as keyof typeof lists] ?? lists.review;
+const tabs = [
+  { id: 'review', label: 'To review' },
+  { id: 'flagged', label: 'Flagged by AI' },
+  { id: 'done', label: 'Done' },
+];
+const uni = getUniversity(session.universityId);
+---
+<AppLayout title="Review queue">
+  <header class="queue-header">
+    <div class="row">
+      <div class="topbar__title">
+        <strong>Review queue</strong>
+        <span>{session.role === 'admin' ? 'All universities · Admin' : `${uni?.shortName} · You are a moderator`}</span>
+      </div>
+      {allowed && <a class="btn releases" href="/releases"><Icon name="download" size={16} />Releases</a>}
+    </div>
+    {allowed && (
+      <nav class="tabs" aria-label="Queue filter">
+        {tabs.map((t) => (
+          <a href={`/moderate?tab=${t.id}`} aria-current={tab === t.id ? 'page' : undefined}>{t.label}</a>
+        ))}
+      </nav>
+    )}
+  </header>
+
+  {!allowed ? <ModeratorOnly /> : (
+    <main class="content">
+      {items.length === 0 && <p class="small">Nothing here right now.</p>}
+      {items.map((s) => (
+        <a class="card" href={`/moderate/${s.id}`}>
+          <span class="meta">
+            <span>{storyMeta(s).toUpperCase()}{s.language !== 'en' && languageName(s.language) ? ` · written in ${languageName(s.language)}` : ''}</span>
+            <span>{s.submittedAt}</span>
+          </span>
+          <span class="excerpt">"{s.text.length > 110 ? `${s.text.slice(0, 110)}…` : s.text}"</span>
+          <span class="chips">
+            {s.status !== 'pending' && <span class:list={['badge', s.status === 'approved' ? 'badge--ok' : 'badge--warn']}>{s.status === 'approved' ? 'Approved' : 'Rejected'}</span>}
+            {s.status === 'pending' && s.aiCheck.relevant && <span class="badge badge--ok">Relevant</span>}
+            {s.status === 'pending' && !s.aiCheck.relevant && <span class="badge badge--warn">May be too short</span>}
+            {s.status === 'pending' && s.aiCheck.offensive && <span class="badge badge--warn">Possibly offensive</span>}
+            {s.status === 'pending' && s.aiCheck.personalData && <span class="badge badge--warn">Possible personal data</span>}
+            {s.status === 'pending' && <span class="badge">Suggests: {s.aiCheck.suggestedVisibility === 'public' ? 'public' : `${getUniversity(s.universityId)?.shortName} only`}</span>}
+          </span>
+        </a>
+      ))}
+    </main>
+  )}
+
+  <BottomNav current="moderate" />
+</AppLayout>
+
+<style>
+  .queue-header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 20px 0;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .releases {
+    min-height: 40px;
+    font-size: 13px;
+    border-radius: 12px;
+  }
+  .tabs {
+    display: flex;
+    gap: 20px;
+  }
+  .tabs a {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-3);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+  }
+  .tabs a[aria-current='page'] {
+    color: var(--red);
+    font-weight: 600;
+    border-bottom-color: var(--red);
+  }
+  .meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-3);
+  }
+  .excerpt {
+    font-size: 15px;
+    line-height: 1.45;
+  }
+</style>

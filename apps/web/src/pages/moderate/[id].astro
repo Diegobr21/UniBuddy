@@ -1,0 +1,152 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Icon from '../../components/Icon.astro';
+import ModeratorOnly from '../../components/ModeratorOnly.astro';
+import { canModerate, getUniversity } from '@unibuddy/data';
+import { getSession } from '../../lib/session';
+import { moderationScope, questionText, storyMeta } from '../../lib/moderation';
+
+const session = getSession(Astro.cookies);
+const allowed = canModerate(session);
+const story = allowed ? moderationScope(session).find((s) => s.id === Astro.params.id) : undefined;
+if (allowed && !story) return Astro.redirect('/moderate');
+
+// Highlight what the AI flagged as a possible name, so the moderator sees it at a glance
+const nameMatch = story?.aiCheck.personalData ? story.text.match(/\b[A-ZÁÉÍÓÚ][a-záéíóúñ]+ [A-Z]\./) : null;
+const parts = story && nameMatch ? story.text.split(nameMatch[0]) : null;
+const uniShort = story ? getUniversity(story.universityId)?.shortName : '';
+---
+<AppLayout title="Review a story">
+  <header class="topbar">
+    <a href="/moderate" class="btn btn--icon" aria-label="Back to review queue"><Icon name="back" /></a>
+    <div class="topbar__title">
+      <strong>Review a story</strong>
+      {story && <span>{storyMeta(story)} · {story.submittedAt}</span>}
+    </div>
+  </header>
+
+  {!allowed || !story ? <ModeratorOnly /> : (
+    <main class="content">
+      <div class="field">
+        <span class="small strong">{questionText(story)}</span>
+        <p class="card story">
+          {parts ? <>{parts[0]}<mark>{nameMatch![0]}</mark>{parts.slice(1).join(nameMatch![0])}</> : story.text}
+        </p>
+      </div>
+
+      <div class="card checks">
+        <span class="label">AI check</span>
+        <div class="check"><span>Offensive</span><strong class={story.aiCheck.offensive ? 'warn' : 'ok'}>{story.aiCheck.offensive ? 'Possibly' : 'No'}</strong></div>
+        <div class="check"><span>Personal data</span><strong class={story.aiCheck.personalData ? 'warn' : 'ok'}>{story.aiCheck.personalData ? `Possible: ${story.aiCheck.personalData}` : 'No'}</strong></div>
+        <div class="check"><span>Relevant to the question</span><strong class={story.aiCheck.relevant ? 'ok' : 'warn'}>{story.aiCheck.relevant ? 'Yes' : 'May be too short'}</strong></div>
+        <div class="check"><span>Suggested visibility</span><strong>{story.aiCheck.suggestedVisibility === 'public' ? 'Everyone' : `${uniShort} only`}</strong></div>
+      </div>
+
+      {story.status !== 'pending' ? (
+        <p class="notice">This story was already {story.status}.</p>
+      ) : (
+        <form method="post" action="/api/moderate" class="decision">
+          <input type="hidden" name="id" value={story.id} />
+          <div class="field">
+            <label class="label" for="edited">Edit before approving (optional)</label>
+            <textarea id="edited" name="text" class="textarea" maxlength="2000">{story.text}</textarea>
+          </div>
+
+          <fieldset>
+            <legend class="label">Who can see it</legend>
+            <div class="segmented">
+              <label><input type="radio" name="visibility" value="public" checked={story.aiCheck.suggestedVisibility === 'public'} class="visually-hidden" />Everyone</label>
+              <label><input type="radio" name="visibility" value="university" checked={story.aiCheck.suggestedVisibility === 'university'} class="visually-hidden" />{uniShort} only</label>
+            </div>
+          </fieldset>
+
+          <div class="buttons">
+            <button type="submit" name="decision" value="reject" class="btn reject">Reject</button>
+            <button type="submit" name="decision" value="approve" class="btn btn--primary approve">Approve</button>
+          </div>
+          <span class="small center">Approved stories go live in the next weekly release.</span>
+        </form>
+      )}
+    </main>
+  )}
+</AppLayout>
+
+<style>
+  .strong {
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .story {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.55;
+    display: block;
+  }
+  mark {
+    background: #ffe3cc;
+    color: var(--ink);
+    padding: 0 2px;
+    border-radius: 3px;
+  }
+  .check {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+  }
+  .ok {
+    color: var(--ok);
+  }
+  .warn {
+    color: var(--warn);
+    text-align: right;
+  }
+  .decision {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .segmented {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 12px;
+    background: var(--surface-2);
+  }
+  .segmented label {
+    flex: 1;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-2);
+    cursor: pointer;
+  }
+  .segmented label:has(input:checked) {
+    background: var(--white);
+    color: var(--red);
+    font-weight: 600;
+    box-shadow: var(--shadow-s);
+  }
+  .segmented label:has(input:focus-visible) {
+    outline: 3px solid var(--red);
+  }
+  .buttons {
+    display: flex;
+    gap: 10px;
+  }
+  .reject {
+    flex: 1;
+    min-height: 52px;
+  }
+  .approve {
+    flex: 2;
+    min-height: 52px;
+  }
+  .center {
+    text-align: center;
+  }
+</style>

@@ -1,0 +1,56 @@
+---
+// PROTOTYPE ONLY: a bar above the screen to switch roles during demos and show how access changes.
+// Remove it (and the cookie session) once real university sign-in is in place.
+import { getUniversity, roles } from '@unibuddy/data';
+import { getSession } from '../lib/session';
+
+const session = getSession(Astro.cookies);
+const uni = session.universityId ?? 'iese';
+const here = Astro.url.pathname + Astro.url.search;
+---
+<details class="role-switcher">
+  <summary>Demo · {roles.find((r) => r.id === session.role)?.label}{session.universityId ? ` · ${getUniversity(session.universityId)?.shortName}` : ''}</summary>
+  <p class="small">See the app as:</p>
+  <div class="role-switcher__buttons">
+    {roles.map((r) => (
+      <form method="post" action="/api/session">
+        <input type="hidden" name="role" value={r.id} />
+        <input type="hidden" name="uni" value={uni} />
+        <input type="hidden" name="next" value={here} />
+        <button type="submit" class="chip" aria-pressed={session.role === r.id ? 'true' : 'false'}>{r.label}</button>
+      </form>
+    ))}
+  </div>
+</details>
+
+<style>
+  /* A thin bar above the screen, in the normal flow: it never covers the app's own buttons */
+  .role-switcher {
+    width: 100%;
+    max-width: 430px;
+    margin: 0 auto;
+    padding: 6px 16px;
+    background: var(--ink);
+    color: var(--white);
+    font-size: 13px;
+  }
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+  }
+  .role-switcher .small {
+    color: #c8c8cc;
+    margin: 8px 0 6px;
+  }
+  .role-switcher__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  form {
+    margin: 0;
+  }
+</style>

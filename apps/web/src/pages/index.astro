@@ -1,0 +1,184 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import Icon from '../components/Icon.astro';
+import { universities } from '@unibuddy/data';
+
+const query = (Astro.url.searchParams.get('q') ?? '').trim().toLowerCase();
+const list = universities.filter(
+  (u) => !query || u.name.toLowerCase().includes(query) || u.city.toLowerCase().includes(query),
+);
+---
+<AppLayout title="Choose your university">
+  <header class="home-header">
+    <div class="brand">
+      <span class="brand__mark"><Icon name="chat" color="#fff" /></span>
+      <span class="brand__name">MBA Buddy</span>
+    </div>
+    <button type="button" class="btn lang" aria-label="Change language, current English" title="Coming soon: the interface follows your browser language">
+      <Icon name="globe" size={16} />English
+    </button>
+  </header>
+
+  <main class="content">
+    <div class="intro">
+      <h1>Your senior student who never graduates</h1>
+      <p class="lead">Pick your university to get answers from people who have been there, in your language.</p>
+    </div>
+
+    <form class="field" method="get" action="/" role="search">
+      <label class="label" for="uni-search">Find your university</label>
+      <div class="search">
+        <Icon name="search" size={18} color="#6b6b6b" />
+        <input id="uni-search" name="q" type="search" class="search__input" placeholder="Search by name or city" value={query} />
+      </div>
+    </form>
+
+    <div class="list">
+      {list.map((u) => (
+        <a class:list={['card', 'uni', { 'card--selected': u.status === 'pilot' }]} href={`/sign-in?uni=${u.id}`}>
+          <span class:list={['uni__logo', { 'uni__logo--pilot': u.status === 'pilot' }]}>{u.shortName}</span>
+          <span class="uni__text">
+            <strong>{u.name}</strong>
+            <span>{u.status === 'pilot' ? `${u.city} · Pilot university` : 'See what an MCP-ready campus can do'}</span>
+          </span>
+          {u.login === 'sso' && <span class="badge badge--red">Sign-in ready</span>}
+        </a>
+      ))}
+      {list.length === 0 && <p class="small">No university matches "{query}".</p>}
+      <div class="card card--dashed uni">
+        <span class="uni__logo uni__logo--empty"><Icon name="plus" color="#6b6b6b" /></span>
+        <span class="uni__text">
+          <strong>Not listed yet?</strong>
+          <span>Ask your university to join</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="footer">
+      <form method="post" action="/api/session">
+        <input type="hidden" name="role" value="visitor" />
+        <input type="hidden" name="uni" value="" />
+        <input type="hidden" name="next" value="/chat" />
+        <button type="submit" class="link-btn as-link">Just looking? Browse public answers</button>
+      </form>
+      <p class="small center">An AI assistant answers using stories verified by students and staff.</p>
+    </div>
+  </main>
+</AppLayout>
+
+<style>
+  .home-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 20px 0;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand__mark {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--red);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .brand__name {
+    font-weight: 800;
+    font-size: 18px;
+  }
+  .lang {
+    min-height: 44px;
+    border-radius: 22px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .intro {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 0 14px;
+    border-radius: var(--radius-m);
+    border: 1px solid var(--border-2);
+    background: var(--white);
+  }
+  .search__input {
+    flex: 1;
+    border: 0;
+    outline: none;
+    font: 400 16px var(--font);
+    background: transparent;
+  }
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .uni {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+  }
+  .uni__logo {
+    width: 48px;
+    height: 48px;
+    flex: none;
+    border-radius: 12px;
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--ink-3);
+  }
+  .uni__logo--pilot {
+    background: var(--red-pale);
+    color: var(--red);
+  }
+  .uni__logo--empty {
+    background: var(--white);
+  }
+  .uni__text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .uni__text span {
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+  .footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .footer form {
+    margin: 0;
+  }
+  .as-link {
+    border: 0;
+    background: none;
+    color: var(--red);
+    cursor: pointer;
+    font-family: var(--font);
+  }
+  .center {
+    text-align: center;
+    margin: 0;
+  }
+</style>

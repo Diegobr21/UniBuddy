@@ -1,0 +1,322 @@
+/* Shared building blocks for every screen: buttons, chips, cards, badges, inputs and the bottom nav. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--surface-2);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--red);
+}
+a:hover {
+  color: var(--red-deep);
+}
+
+:focus-visible {
+  outline: 3px solid var(--red);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* The phone-width frame every screen lives in. On a phone it fills the screen. */
+.screen {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px 12px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+}
+.topbar__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.topbar__title strong {
+  font-size: 17px;
+}
+.topbar__title span {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+h1 {
+  margin: 0;
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+.lead {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+.small {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+.label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Buttons: real <button> or <a>, at least 44px tall */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border-2);
+  background: var(--white);
+  color: var(--ink);
+  font: 600 15px var(--font);
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn:hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+.btn--primary {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--white);
+}
+.btn--primary:hover {
+  background: var(--red-deep);
+  border-color: var(--red-deep);
+  color: var(--white);
+}
+.btn--outline-red {
+  border-color: var(--red);
+  color: var(--red);
+}
+.btn--block {
+  width: 100%;
+  min-height: 52px;
+  font-size: 16px;
+}
+.btn--icon {
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 22px;
+}
+.link-btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Chips and badges */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 18px;
+  border: 1px solid var(--border-2);
+  background: var(--white);
+  font: 500 13px var(--font);
+  color: var(--ink);
+  cursor: pointer;
+}
+.chip[aria-pressed='true'] {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--white);
+  font-weight: 600;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+.badge--ok {
+  background: var(--ok-pale);
+  color: var(--ok);
+}
+.badge--warn {
+  background: var(--warn-pale);
+  color: var(--warn);
+}
+.badge--red {
+  background: var(--red-pale);
+  color: var(--red-deep);
+}
+
+/* Cards */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--radius-l);
+  background: var(--white);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  text-decoration: none;
+}
+a.card:hover {
+  color: var(--ink);
+  border-color: var(--border-2);
+}
+.card--selected {
+  border: 2px solid var(--red);
+}
+.card--dashed {
+  background: var(--surface-2);
+  border: 1px dashed var(--border-2);
+}
+.card--tint {
+  background: var(--red-pale);
+  border-color: transparent;
+}
+
+/* Form fields */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.input,
+.select,
+.textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--border-2);
+  background: var(--white);
+  font: 400 16px var(--font);
+  color: var(--ink);
+}
+.textarea {
+  min-height: 120px;
+  padding: 12px 14px;
+  line-height: 1.5;
+  resize: vertical;
+}
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+legend {
+  padding: 0;
+  margin-bottom: 8px;
+}
+.radio {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: var(--radius-m);
+  background: var(--white);
+  border: 1px solid var(--border-2);
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+.radio:has(input:checked) {
+  background: var(--red-pale);
+  border-color: var(--red);
+}
+.radio input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--red);
+}
+
+.notice {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-3);
+}
+
+/* Bottom navigation */
+.bottom-nav {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 12px 20px;
+  background: var(--white);
+  border-top: 1px solid var(--border);
+}
+.bottom-nav a {
+  min-width: 64px;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 500;
+}
+.bottom-nav a[aria-current='page'] {
+  color: var(--red);
+  font-weight: 600;
+}

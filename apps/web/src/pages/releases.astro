@@ -1,0 +1,158 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import Icon from '../components/Icon.astro';
+import ModeratorOnly from '../components/ModeratorOnly.astro';
+import { canPublishReleases, canSeeStory, releases, stories } from '@unibuddy/data';
+import { getSession } from '../lib/session';
+
+const session = getSession(Astro.cookies);
+const allowed = canPublishReleases(session);
+
+const next = releases.find((r) => r.status === 'next')!;
+const history = releases.filter((r) => r.status !== 'next');
+
+// A real check, run on every page load: a visitor must never be able to see a university-only story
+const visitor = { role: 'visitor' as const, universityId: null };
+const accessTestPasses = stories.filter((s) => s.visibility === 'university').every((s) => !canSeeStory(visitor, s));
+const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+---
+<AppLayout title="Releases">
+  <header class="topbar">
+    <a href="/moderate" class="btn btn--icon" aria-label="Back to review queue"><Icon name="back" /></a>
+    <div class="topbar__title">
+      <strong>Releases</strong>
+      <span>What the assistant knows, version by version</span>
+    </div>
+  </header>
+
+  {!allowed ? <ModeratorOnly /> : (
+    <main class="content">
+      <section class="card card--selected">
+        <div class="row">
+          <span class="eyebrow">NEXT RELEASE</span>
+          <span class="small">Scheduled {formatDate(next.date)}</span>
+        </div>
+        <span class="version">{next.version}</span>
+        <span class="count">{next.storyIds.length} {next.storyIds.length === 1 ? 'story' : 'stories'} approved since the last release</span>
+        <ul class="checks">
+          <li><Icon name="check" size={18} color="#00694f" />Test questions pass in English and Spanish <span class="small">(placeholder)</span></li>
+          <li><Icon name={accessTestPasses ? 'check' : 'info'} size={18} color={accessTestPasses ? '#00694f' : '#a34a00'} />Visitors never see university-only stories</li>
+          <li><Icon name="check" size={18} color="#00694f" />Answers are not worse than the live version <span class="small">(placeholder)</span></li>
+        </ul>
+        <div class="buttons">
+          <a class="btn" href="/chat">Preview answers</a>
+          <form method="post" action="/api/releases">
+            <input type="hidden" name="action" value="publish" />
+            <button type="submit" class="btn btn--primary" disabled={next.storyIds.length === 0 || !accessTestPasses}>Publish now</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="history">
+        <span class="label">History</span>
+        {history.map((r) => (
+          <div class="card version-row">
+            <div class="version-row__text">
+              <strong>{r.version}</strong>
+              <span class="small">Published {formatDate(r.date)} · {r.storyIds.length} stories</span>
+            </div>
+            {r.status === 'live' ? (
+              <span class="badge badge--ok live">Live</span>
+            ) : (
+              <form method="post" action="/api/releases">
+                <input type="hidden" name="action" value="rollback" />
+                <input type="hidden" name="version" value={r.version} />
+                <button type="submit" class="btn small-btn">Roll back to this</button>
+              </form>
+            )}
+          </div>
+        ))}
+      </section>
+
+      <p class="small center">A story withdrawn by its author is removed in the next release.</p>
+    </main>
+  )}
+</AppLayout>
+
+<style>
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--red);
+    letter-spacing: 0.04em;
+  }
+  .version {
+    font-size: 22px;
+    font-weight: 800;
+  }
+  .count {
+    font-size: 14px;
+    color: var(--ink-2);
+  }
+  .checks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .checks li {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    font-size: 14px;
+  }
+  .buttons {
+    display: flex;
+    gap: 10px;
+  }
+  .buttons > * {
+    flex: 1;
+  }
+  .buttons form {
+    display: flex;
+  }
+  .buttons form .btn {
+    flex: 1;
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .history {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .version-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .version-row__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .version-row form {
+    margin: 0;
+  }
+  .small-btn {
+    min-height: 40px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+  .live {
+    border-radius: 13px;
+  }
+  .center {
+    text-align: center;
+  }
+</style>

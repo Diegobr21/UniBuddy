@@ -1,0 +1,28 @@
+/* Design tokens taken from the MBA Buddy screens (Claude Design canvas). Change a colour here and every app follows. */
+:root {
+  --red: #c0001a;
+  --red-deep: #8b0000;
+  --red-pale: #fbeff1;
+
+  --ink: #0a0a0a;
+  --ink-2: #3f3f46;
+  --ink-3: #6b6b6b;
+
+  --surface: #f7f7f8;
+  --surface-2: #f0f0f2;
+  --white: #ffffff;
+  --border: #e4e4e7;
+  --border-2: #d1d1d6;
+
+  --ok: #00694f;
+  --ok-pale: #e6f8f2;
+  --warn: #a34a00;
+  --warn-pale: #fff1e8;
+
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 16px;
+
+  --font: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --shadow-s: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
