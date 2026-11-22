@@ -1,11 +1,10 @@
 // WebMCP: the page tells AI agents in the browser which actions it offers, so they don't need to read the
-// screen or simulate clicks. Same pattern as the workshop's WebMCP challenge.
+// screen or simulate clicks. Same pattern as the MWC workshop's WebMCP challenge.
 // Try it in Chrome with chrome://flags/#enable-webmcp-testing enabled.
-import { bookOfficeHours, getDeadlines, professors, requestCertificate } from './portal';
+import { certificateLanguages, certificateTypes, deadlines, professors } from '../lib/catalog';
+import { submit } from './portal-api';
 
-type Show = (title: string, detail: unknown) => void;
-
-export async function registerTools(show: Show): Promise<string[]> {
+export async function registerTools(onChange: () => void): Promise<string[]> {
   // The API lives in document.modelContext (older builds: navigator.modelContext)
   const modelContext = (document as any).modelContext ?? (navigator as any).modelContext;
   if (!modelContext) return [];
@@ -17,16 +16,16 @@ export async function registerTools(show: Show): Promise<string[]> {
       inputSchema: {
         type: 'object',
         properties: {
-          type: { type: 'string', enum: ['enrolment', 'transcript'], description: 'Enrolment certificate or academic transcript' },
-          language: { type: 'string', enum: ['en', 'es'], description: 'Language of the certificate' },
+          type: { type: 'string', enum: Object.keys(certificateTypes), description: 'enrolment = enrolment certificate, transcript = academic transcript' },
+          language: { type: 'string', enum: Object.keys(certificateLanguages), description: 'Language of the certificate' },
         },
         required: ['type'],
       },
       // It creates a real request: the browser may ask the student to confirm
       annotations: { consequentialHint: true },
-      execute: ({ type, language = 'en' }: { type: 'enrolment' | 'transcript'; language?: 'en' | 'es' }) => {
-        const result = requestCertificate({ type, language });
-        show('Certificate requested by your assistant', result);
+      execute: async ({ type, language = 'en' }: { type: string; language?: string }) => {
+        const result = await submit({ procedure: 'certificate', type, language, channel: 'webmcp' });
+        onChange();
         return result;
       },
     },
@@ -42,9 +41,9 @@ export async function registerTools(show: Show): Promise<string[]> {
         required: ['professor', 'date'],
       },
       annotations: { consequentialHint: true },
-      execute: ({ professor, date }: { professor: string; date: string }) => {
-        const result = bookOfficeHours({ professor, date });
-        show('Office hours booked by your assistant', result);
+      execute: async ({ professor, date }: { professor: string; date: string }) => {
+        const result = await submit({ procedure: 'office-hours', professor, date, channel: 'webmcp' });
+        onChange();
         return result;
       },
     },
@@ -53,7 +52,7 @@ export async function registerTools(show: Show): Promise<string[]> {
       description: 'Lists the upcoming academic deadlines (course selection, exchange applications, thesis).',
       inputSchema: { type: 'object', properties: {} },
       annotations: { readOnlyHint: true },
-      execute: () => getDeadlines(),
+      execute: () => ({ deadlines }),
     },
   ];
 

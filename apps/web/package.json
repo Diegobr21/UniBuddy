@@ -12,6 +12,7 @@
   "dependencies": {
     "@astrojs/netlify": "^8.2.14",
     "@astrojs/react": "^7.1.9",
+    "@modelcontextprotocol/client": "^2.4.0",
     "@unibuddy/data": "*",
     "@unibuddy/ui": "*",
     "astro": "^7.4.13",

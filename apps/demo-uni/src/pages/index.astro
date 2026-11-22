@@ -1,6 +1,10 @@
 ---
-import { deadlines, professors } from '../scripts/portal';
+import { certificateLanguages, certificateTypes, channelLabels, deadlines, professors } from '../lib/catalog';
+import { listRequests } from '../lib/procedures';
+
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+const today = new Date().toISOString().slice(0, 10);
+const requests = listRequests();
 ---
 <!doctype html>
 <html lang="en">
@@ -32,13 +36,11 @@ const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { 
           <form id="cert-form" class="form">
             <label for="cert-type">Certificate</label>
             <select id="cert-type" name="type">
-              <option value="enrolment">Enrolment certificate</option>
-              <option value="transcript">Academic transcript</option>
+              {Object.entries(certificateTypes).map(([value, label]) => <option value={value}>{label}</option>)}
             </select>
             <label for="cert-lang">Language</label>
             <select id="cert-lang" name="language">
-              <option value="en">English</option>
-              <option value="es">Spanish</option>
+              {Object.entries(certificateLanguages).map(([value, label]) => <option value={value}>{label}</option>)}
             </select>
             <button type="submit">Request</button>
           </form>
@@ -52,7 +54,7 @@ const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { 
               {professors.map((p) => <option value={p}>{p}</option>)}
             </select>
             <label for="oh-date">Date</label>
-            <input id="oh-date" name="date" type="date" required />
+            <input id="oh-date" name="date" type="date" min={today} required />
             <button type="submit">Book</button>
           </form>
         </section>
@@ -65,17 +67,27 @@ const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { 
         </section>
       </div>
 
+      <p id="form-error" class="form-error" role="alert" hidden></p>
+
       <section class="card activity" aria-labelledby="activity-title">
         <h2 id="activity-title">Activity</h2>
-        <p class="muted" id="activity-empty">Requests made here, by you or by your assistant, appear in this list.</p>
-        <ul id="activity" class="activity__list" aria-live="polite"></ul>
+        <p class="muted" id="activity-empty" hidden={requests.length > 0}>Requests made here, by you or by your assistant, appear in this list.</p>
+        <ul id="activity" class="activity__list" aria-live="polite">
+          {requests.map((r) => (
+            <li class:list={[`channel-${r.channel}`]}>
+              <strong>{r.title} · {r.reference}</strong>
+              <span>{r.detail} · {r.status}</span>
+              <span class="channel">{channelLabels[r.channel]}</span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section class="explainer" aria-labelledby="how-title">
         <h2 id="how-title">For universities: how this works</h2>
         <ol>
           <li><strong>WebMCP</strong> (in the browser): the page registers its actions, such as <code>request_certificate</code>, so an AI agent calls them directly instead of reading the screen and clicking.</li>
-          <li><strong>MCP server</strong> (coming next): the same actions as an API that MBA Buddy's chat can call, with the student's own permissions, and show the form inside the conversation.</li>
+          <li><strong>MCP server</strong> at <code>/mcp</code>: the same actions for MBA Buddy's chat. The student asks in their own words, the chat fills in the form and the student confirms. Requests made that way appear in this list too.</li>
           <li>Risky actions ask the student to confirm. The assistant only ever sees what that student could already see.</li>
         </ol>
         <p class="muted">To try WebMCP: Chrome with <code>chrome://flags/#enable-webmcp-testing</code> enabled and a WebMCP-capable agent extension.</p>
@@ -83,41 +95,63 @@ const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { 
     </main>
 
     <script>
-      import { bookOfficeHours, requestCertificate } from '../scripts/portal';
+      import { channelLabels, type Channel } from '../lib/catalog';
+      import { fetchRequests, submit } from '../scripts/portal-api';
       import { registerTools } from '../scripts/webmcp';
 
       const list = document.getElementById('activity')!;
       const empty = document.getElementById('activity-empty')!;
+      const formError = document.getElementById('form-error')!;
 
-      function show(title: string, detail: unknown) {
-        empty.hidden = true;
-        const item = document.createElement('li');
-        const heading = document.createElement('strong');
-        heading.textContent = title;
-        const body = document.createElement('span');
-        body.textContent = Object.values(detail as Record<string, string>).join(' · ');
-        item.append(heading, body);
-        list.prepend(item);
+      // Redraw the activity list from the server, so requests made from MBA Buddy's chat show up here too
+      async function refresh() {
+        const requests = await fetchRequests().catch(() => null);
+        if (!requests) return;
+        empty.hidden = requests.length > 0;
+        list.replaceChildren(
+          ...requests.map((r) => {
+            const item = document.createElement('li');
+            item.className = `channel-${r.channel}`;
+            const title = document.createElement('strong');
+            title.textContent = `${r.title} · ${r.reference}`;
+            const detail = document.createElement('span');
+            detail.textContent = `${r.detail} · ${r.status}`;
+            const channel = document.createElement('span');
+            channel.className = 'channel';
+            channel.textContent = channelLabels[r.channel as Channel];
+            item.append(title, detail, channel);
+            return item;
+          }),
+        );
+      }
+
+      async function send(body: Record<string, string>) {
+        formError.hidden = true;
+        try {
+          await submit({ ...body, channel: 'portal' });
+          await refresh();
+        } catch (error) {
+          formError.textContent = (error as Error).message;
+          formError.hidden = false;
+        }
       }
 
       document.getElementById('cert-form')!.addEventListener('submit', (event) => {
         event.preventDefault();
         const data = new FormData(event.target as HTMLFormElement);
-        show('Certificate requested', requestCertificate({ type: data.get('type') as 'enrolment', language: data.get('language') as 'en' }));
+        send({ procedure: 'certificate', type: String(data.get('type')), language: String(data.get('language')) });
       });
 
       document.getElementById('oh-form')!.addEventListener('submit', (event) => {
         event.preventDefault();
         const data = new FormData(event.target as HTMLFormElement);
-        try {
-          show('Office hours booked', bookOfficeHours({ professor: String(data.get('professor')), date: String(data.get('date')) }));
-        } catch (error) {
-          show('Could not book', { error: (error as Error).message });
-        }
+        send({ procedure: 'office-hours', professor: String(data.get('professor')), date: String(data.get('date')) });
       });
 
+      setInterval(refresh, 3000);
+
       const status = document.getElementById('webmcp-status')!;
-      registerTools(show).then((names) => {
+      registerTools(refresh).then((names) => {
         if (names.length) {
           status.textContent = `WebMCP: ${names.length} tools ready`;
           status.className = 'pill pill--on';
@@ -303,6 +337,23 @@ const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { 
         padding: 12px;
         border-radius: 10px;
         background: var(--navy-pale);
+        font-size: 14px;
+      }
+      .activity__list .channel {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .activity__list .channel-mba-buddy {
+        background: #fbeff1;
+        border-left: 4px solid #c0001a;
+      }
+      .form-error {
+        margin: 16px 0 0;
+        padding: 12px;
+        border-radius: 10px;
+        background: #fff1e8;
+        color: #a34a00;
         font-size: 14px;
       }
       .explainer {

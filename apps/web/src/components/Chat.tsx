@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import type { Answer } from '../lib/answer';
+import ActionCard from './ActionCard';
 
 interface Message {
   from: 'student' | 'assistant';
@@ -79,6 +80,8 @@ export default function Chat({ suggestions, universityName, isMember, signInHref
                   </div>
                 )}
               </div>
+
+              {m.details?.action && <ActionCard proposal={m.details.action} />}
 
               {m.details && !isMember && m.details.hiddenCount > 0 && universityName && (
                 <div className="card card--dashed locked">

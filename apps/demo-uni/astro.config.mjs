@@ -1,7 +1,11 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
+import node from '@astrojs/node';
 
-// A plain static site: a fictional university portal that exposes its procedures to AI agents with WebMCP.
+// A fictional university portal. It runs on a server so that the web page, browser agents (WebMCP)
+// and MBA Buddy's chat (MCP) all share the same list of procedures.
 export default defineConfig({
+  output: 'server',
+  adapter: node({ mode: 'standalone' }),
   server: { port: 4322 },
 });

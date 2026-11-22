@@ -5,6 +5,8 @@ import BottomNav from '../components/BottomNav.astro';
 import Chat from '../components/Chat.tsx';
 import { getUniversity, isMember } from '@unibuddy/data';
 import { getSession } from '../lib/session';
+import { serverEnv } from '../lib/env';
+import { connectorUrl } from '../lib/uni-connectors';
 
 const session = getSession(Astro.cookies);
 const uni = getUniversity(session.universityId);
@@ -17,9 +19,14 @@ const roleLabel = {
   admin: `Admin · ${uni?.shortName}`,
 }[session.role];
 
-const suggestions = member
-  ? ['How do people find a flat?', 'Getting my NIE / TIE', 'When should I start recruiting?']
-  : ['How do people find a flat?', 'Student visa basics'];
+// Universities that publish an MCP server: the chat can also run their procedures
+const connected = member && connectorUrl(session.universityId, serverEnv()) !== null;
+
+const suggestions = connected
+  ? ['Request my transcript in Spanish', 'Book office hours with Prof. Klein tomorrow', 'What are the upcoming deadlines?']
+  : member
+    ? ['How do people find a flat?', 'Getting my NIE / TIE', 'When should I start recruiting?']
+    : ['How do people find a flat?', 'Student visa basics'];
 ---
 <AppLayout title="Chat">
   <header class="topbar">
@@ -33,6 +40,9 @@ const suggestions = member
 
   <div class="notice-wrap">
     <p class="notice"><Icon name="info" size={16} />You are chatting with an AI assistant. Answers come from verified student stories.</p>
+    {connected && (
+      <p class="notice connected"><Icon name="check" size={16} />Connected to {uni?.name}: the assistant can also prepare procedures for you to confirm.</p>
+    )}
   </div>
 
   <main class="chat-main">
@@ -77,6 +87,45 @@ const suggestions = member
   }
   .notice {
     margin: 0;
+  }
+  .connected {
+    margin-top: 8px;
+    background: var(--ok-pale);
+    color: var(--ok);
+  }
+  :global(.action) {
+    gap: 12px;
+    border: 1px solid var(--red);
+  }
+  :global(.action__head) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  :global(.action__buttons) {
+    display: flex;
+    gap: 10px;
+  }
+  :global(.action__buttons .btn) {
+    flex: 1;
+  }
+  :global(.action__buttons .btn--primary) {
+    flex: 2;
+  }
+  :global(.action__ok) {
+    background: var(--ok-pale);
+    color: var(--ok);
+  }
+  :global(.action__error) {
+    background: var(--warn-pale);
+    color: var(--warn);
+  }
+  :global(.action select:disabled),
+  :global(.action input:disabled) {
+    background: var(--surface-2);
+    color: var(--ink-2);
   }
   .chat-main {
     flex: 1;

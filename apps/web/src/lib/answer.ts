@@ -9,6 +9,7 @@ import {
   type Story,
   type TopicId,
 } from '@unibuddy/data';
+import type { ActionProposal } from './action-types';
 
 const topicWords: Record<TopicId, string[]> = {
   housing: ['flat', 'room', 'rent', 'housing', 'apartment', 'lease', 'piso', 'alquiler', 'habitacion', 'vivienda'],
@@ -59,6 +60,8 @@ export interface Source {
 
 export interface Answer {
   answer: string;
+  /** A university procedure prepared for the student to confirm (only for universities connected via MCP) */
+  action?: ActionProposal;
   sources: Source[];
   /** How many matching university-only stories this person cannot see (never their content) */
   hiddenCount: number;
