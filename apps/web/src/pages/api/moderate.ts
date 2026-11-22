@@ -15,7 +15,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
 
   if (form.get('decision') === 'approve') {
     const edited = String(form.get('text') ?? '').trim().slice(0, 2000);
-    if (edited.length >= 20) story.text = edited;
+    if (edited.length >= 10) story.text = edited;
     story.visibility = form.get('visibility') === 'public' ? 'public' : 'university';
     story.status = 'approved';
     releases.find((r) => r.status === 'next')?.storyIds.push(story.id);

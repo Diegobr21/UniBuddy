@@ -2,7 +2,7 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 import Icon from '../../components/Icon.astro';
 import ModeratorOnly from '../../components/ModeratorOnly.astro';
-import { canModerate, getUniversity } from '@unibuddy/data';
+import { canModerate, getTopic, getUniversity } from '@unibuddy/data';
 import { getSession } from '../../lib/session';
 import { moderationScope, questionText, storyMeta } from '../../lib/moderation';
 
@@ -15,6 +15,17 @@ if (allowed && !story) return Astro.redirect('/moderate');
 const nameMatch = story?.aiCheck.personalData ? story.text.match(/\b[A-ZÁÉÍÓÚ][a-záéíóúñ]+ [A-Z]\./) : null;
 const parts = story && nameMatch ? story.text.split(nameMatch[0]) : null;
 const uniShort = story ? getUniversity(story.universityId)?.shortName : '';
+const c = story?.aiCheck ?? { offensive: false, personalData: false as const, relevant: true, suggestedVisibility: 'public' as const };
+const checkedByLabels: Record<string, string> = {
+  jev: 'Checked by Jev',
+  rules: 'Simple rules (Jev not configured)',
+  'rules-jev-unavailable': 'Simple rules (Jev did not answer)',
+};
+const checkedByLabel = c.checkedBy ? checkedByLabels[c.checkedBy] : null;
+const suggestedTopic = c.topicSuggestion ? getTopic(c.topicSuggestion)?.label : null;
+// Jev's numbers next to each verdict, so the moderator sees how sure it is
+const likely = (p?: number) => (p === undefined ? '' : ` · ${Math.round(p * 100)}% likely`);
+const level = (p?: number) => (p === undefined ? '' : ` · ${Math.round(p * 100)}/100`);
 ---
 <AppLayout title="Review a story">
   <header class="topbar">
@@ -35,11 +46,15 @@ const uniShort = story ? getUniversity(story.universityId)?.shortName : '';
       </div>
 
       <div class="card checks">
-        <span class="label">AI check</span>
-        <div class="check"><span>Offensive</span><strong class={story.aiCheck.offensive ? 'warn' : 'ok'}>{story.aiCheck.offensive ? 'Possibly' : 'No'}</strong></div>
-        <div class="check"><span>Personal data</span><strong class={story.aiCheck.personalData ? 'warn' : 'ok'}>{story.aiCheck.personalData ? `Possible: ${story.aiCheck.personalData}` : 'No'}</strong></div>
-        <div class="check"><span>Relevant to the question</span><strong class={story.aiCheck.relevant ? 'ok' : 'warn'}>{story.aiCheck.relevant ? 'Yes' : 'May be too short'}</strong></div>
-        <div class="check"><span>Suggested visibility</span><strong>{story.aiCheck.suggestedVisibility === 'public' ? 'Everyone' : `${uniShort} only`}</strong></div>
+        <div class="check-head">
+          <span class="label">AI check</span>
+          {checkedByLabel && <span class="badge">{checkedByLabel}</span>}
+        </div>
+        <div class="check"><span>Offensive</span><strong class={c.offensive ? 'warn' : 'ok'}>{c.offensive ? 'Possibly' : 'No'}{likely(c.confidence?.offensive)}</strong></div>
+        <div class="check"><span>Personal data</span><strong class={c.personalData ? 'warn' : 'ok'}>{c.personalData ? `Possible: ${c.personalData}` : 'No'}{likely(c.confidence?.personalData)}</strong></div>
+        <div class="check"><span>Useful for other students</span><strong class={c.relevant ? 'ok' : 'warn'}>{c.relevant ? 'Yes' : c.checkedBy === 'jev' ? 'Doubtful' : 'May be too short'}{level(c.confidence?.useful)}</strong></div>
+        {suggestedTopic && <div class="check"><span>Topic</span><strong class="warn">Looks like {suggestedTopic}</strong></div>}
+        <div class="check"><span>Suggested visibility</span><strong>{c.suggestedVisibility === 'public' ? 'Everyone' : `${uniShort} only`}</strong></div>
       </div>
 
       {story.status !== 'pending' ? (
@@ -87,6 +102,12 @@ const uniShort = story ? getUniversity(story.universityId)?.shortName : '';
     color: var(--ink);
     padding: 0 2px;
     border-radius: 3px;
+  }
+  .check-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
   }
   .check {
     display: flex;

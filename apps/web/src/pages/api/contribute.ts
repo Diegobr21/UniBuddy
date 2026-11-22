@@ -1,7 +1,10 @@
 import type { APIRoute } from 'astro';
 import { getQuestion, isMember, stories, topics, type TopicId, type Visibility } from '@unibuddy/data';
 import { getSession } from '../../lib/session';
-import { mockTriage } from '../../lib/triage';
+import { triage } from '../../lib/triage';
+import { serverEnv } from '../../lib/env';
+
+const MIN_STORY_LENGTH = 10;
 
 // PROTOTYPE storage: new stories are kept in server memory and disappear on restart.
 // The real version saves them in the database with status "pending".
@@ -17,8 +20,16 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   const visibility: Visibility = form.get('visibility') === 'public' ? 'public' : 'university';
 
   const validTopic = topics.some((t) => t.id === topicId);
-  const validQuestion = questionId === 'other' ? ownQuestion.length > 5 : Boolean(getQuestion(questionId));
-  if (!validTopic || !validQuestion || text.length < 40) return redirect('/contribute?error=1', 303);
+  const question = questionId === 'other' ? ownQuestion : getQuestion(questionId)?.text;
+  if (!validTopic || !question || question.length < 5 || text.length < MIN_STORY_LENGTH) {
+    return redirect('/contribute?error=1', 303);
+  }
+
+  // Jev checks the story before it reaches the review queue (simple rules if Jev is not configured)
+  const aiCheck = await triage(
+    { text, question, topicId, chosenVisibility: visibility },
+    serverEnv(),
+  );
 
   stories.push({
     id: `n${Date.now()}`,
@@ -30,7 +41,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     authorType: session.role === 'student' ? 'student' : 'alumnus',
     visibility,
     status: 'pending',
-    aiCheck: mockTriage(text, visibility),
+    aiCheck,
     submittedAt: new Date().toISOString().slice(0, 10),
   });
 

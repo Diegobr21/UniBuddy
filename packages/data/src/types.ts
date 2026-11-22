@@ -46,6 +46,12 @@ export interface AiCheck {
   personalData: false | string;
   relevant: boolean;
   suggestedVisibility: Visibility;
+  /** Who produced this check: Jev, the fallback rules (no key), or the rules because Jev did not answer */
+  checkedBy?: 'jev' | 'rules' | 'rules-jev-unavailable';
+  /** Jev's probabilities (0 to 1), shown to the moderator */
+  confidence?: { offensive: number; personalData: number; useful: number };
+  /** Set when Jev thinks the story belongs to a different topic than the one picked */
+  topicSuggestion?: TopicId;
 }
 
 export interface Story {

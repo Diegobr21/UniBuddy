@@ -56,7 +56,8 @@ const uni = getUniversity(session.universityId);
           <span class="chips">
             {s.status !== 'pending' && <span class:list={['badge', s.status === 'approved' ? 'badge--ok' : 'badge--warn']}>{s.status === 'approved' ? 'Approved' : 'Rejected'}</span>}
             {s.status === 'pending' && s.aiCheck.relevant && <span class="badge badge--ok">Relevant</span>}
-            {s.status === 'pending' && !s.aiCheck.relevant && <span class="badge badge--warn">May be too short</span>}
+            {s.status === 'pending' && !s.aiCheck.relevant && <span class="badge badge--warn">{s.aiCheck.checkedBy === 'jev' ? 'Doubtful usefulness' : 'May be too short'}</span>}
+            {s.status === 'pending' && s.aiCheck.topicSuggestion && <span class="badge badge--warn">Other topic?</span>}
             {s.status === 'pending' && s.aiCheck.offensive && <span class="badge badge--warn">Possibly offensive</span>}
             {s.status === 'pending' && s.aiCheck.personalData && <span class="badge badge--warn">Possible personal data</span>}
             {s.status === 'pending' && <span class="badge">Suggests: {s.aiCheck.suggestedVisibility === 'public' ? 'public' : `${getUniversity(s.universityId)?.shortName} only`}</span>}

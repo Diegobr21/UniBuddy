@@ -41,7 +41,7 @@ const error = Astro.url.searchParams.get('error');
   ) : (
     <main class="content">
       <form method="post" action="/api/contribute" class="form">
-        {error && <p class="notice error" role="alert">Please pick a topic, a question and write at least a couple of sentences.</p>}
+        {error && <p class="notice error" role="alert">Please pick a topic and a question, and write at least 10 characters.</p>}
 
         <fieldset>
           <legend class="label">1. Pick a topic</legend>
@@ -71,7 +71,7 @@ const error = Astro.url.searchParams.get('error');
 
         <div class="field">
           <label class="label" for="story">3. Your answer</label>
-          <textarea id="story" name="text" class="textarea" required minlength="40" maxlength="2000" placeholder="Be candid: what actually helped, and what you would do differently."></textarea>
+          <textarea id="story" name="text" class="textarea" required minlength="10" maxlength="2000" placeholder="Be candid: what actually helped, and what you would do differently."></textarea>
           <span class="small">Write in any language. Your name is never shown.</span>
         </div>
 

@@ -12,7 +12,12 @@ npm run dev          # student app      → http://localhost:4321
 npm run dev:uni      # demo university  → http://localhost:4322
 ```
 
-The chat works without any key: it answers straight from the sample stories. To answer with the AI model, copy `.env.example` to `apps/web/.env` and add `OPENAI_API_KEY`.
+Everything works without keys. To turn on the AI parts, copy `.env.example` to `apps/web/.env`:
+
+| Key | What it turns on | Without it |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | The chat answers with gpt-6-luna, only from the stories the person may see | Answers straight from the stories |
+| `JEV_API_KEY` | Jev checks every new story (offensive, personal data, usefulness, topic, visibility) in one call | Simple rules |
 
 ## Try the demo
 
@@ -47,7 +52,7 @@ The most important file is `packages/data/src/access.ts`: it decides what each p
 | Role picked in the Demo panel (cookie) | University sign-in (SSO: SAML / OIDC, eduGAIN), or institutional email |
 | Sample stories in `packages/data` | EU-hosted Postgres with row-level security |
 | Keyword search over stories | Versioned search index (embeddings) per release |
-| `mockTriage` rules in `apps/web/src/lib/triage.ts` | Jev (TypeSafe) classifier |
+| Jev triage in `apps/web/src/lib/triage.ts` (rules if no key) | Same, plus Jev in the chat to route questions to the right person |
 | Releases swapped in memory | Scheduled release builder with test questions |
 | Demo University WebMCP only | Plus an MCP server MBA Buddy's chat can call (MCP UI forms in the chat) |
 

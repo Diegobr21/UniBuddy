@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { answerQuestion } from '../../lib/answer';
 import { getSession } from '../../lib/session';
+import { serverEnv } from '../../lib/env';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   const body = await request.json().catch(() => ({}));
@@ -9,7 +10,5 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   // The session decides what the assistant may read. The browser never sends stories or roles.
   const session = getSession(cookies);
-  const env = { OPENAI_API_KEY: import.meta.env.OPENAI_API_KEY, OPENAI_MODEL: import.meta.env.OPENAI_MODEL };
-
-  return Response.json(await answerQuestion(question, session, env));
+  return Response.json(await answerQuestion(question, session, serverEnv()));
 };
