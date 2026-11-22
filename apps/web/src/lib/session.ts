@@ -24,6 +24,11 @@ export function setSession(cookies: AstroCookies, session: Session) {
   else cookies.delete(UNI_COOKIE, { path: '/' });
 }
 
+export function clearSession(cookies: AstroCookies) {
+  cookies.delete(ROLE_COOKIE, { path: '/' });
+  cookies.delete(UNI_COOKIE, { path: '/' });
+}
+
 /** Only allow redirects inside this site ("/chat", never "https://…" or "//evil.com"). */
 export function safeNext(value: FormDataEntryValue | null, fallback = '/chat'): string {
   const next = typeof value === 'string' ? value : '';

@@ -7,7 +7,11 @@ import { getSession } from '../lib/session';
 const session = getSession(Astro.cookies);
 const uni = session.universityId ?? 'iese';
 const here = Astro.url.pathname + Astro.url.search;
+const signedIn = session.role !== 'visitor';
+// On the university list there is nothing to leave yet
+const showExit = (signedIn || session.universityId !== null) && Astro.url.pathname !== '/';
 ---
+<div class="role-bar">
 <details class="role-switcher">
   <summary>Demo · {roles.find((r) => r.id === session.role)?.label}{session.universityId ? ` · ${getUniversity(session.universityId)?.shortName}` : ''}</summary>
   <p class="small">See the app as:</p>
@@ -22,10 +26,16 @@ const here = Astro.url.pathname + Astro.url.search;
     ))}
   </div>
 </details>
+{showExit && (
+  <form method="post" action="/api/logout" class="exit">
+    <button type="submit" class="exit__btn">{signedIn ? 'Log out' : 'Change university'}</button>
+  </form>
+)}
+</div>
 
 <style>
   /* A thin bar above the screen, in the normal flow: it never covers the app's own buttons */
-  .role-switcher {
+  .role-bar {
     width: 100%;
     max-width: 430px;
     margin: 0 auto;
@@ -33,6 +43,29 @@ const here = Astro.url.pathname + Astro.url.search;
     background: var(--ink);
     color: var(--white);
     font-size: 13px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .role-switcher {
+    flex: 1;
+  }
+  .exit {
+    margin: 0;
+  }
+  .exit__btn {
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 14px;
+    border: 1px solid #5a5a60;
+    background: transparent;
+    color: var(--white);
+    font: 600 12px var(--font);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .exit__btn:hover {
+    background: #2a2a2e;
   }
   summary {
     cursor: pointer;
