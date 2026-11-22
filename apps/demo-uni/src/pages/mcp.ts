@@ -77,9 +77,27 @@ function createServer() {
   return server;
 }
 
+const MCP_ACCEPT = 'application/json, text/event-stream';
+
+/**
+ * The MCP transport refuses POSTs whose Accept header doesn't list both JSON and event streams (406).
+ * The MCP client always sends both, but on some machines the header arrives incomplete through the
+ * dev server. This server always answers in JSON, so completing the header is safe.
+ */
+async function withMcpAccept(request: Request): Promise<Request> {
+  const accept = request.headers.get('accept') ?? '';
+  if (accept.includes('application/json') && accept.includes('text/event-stream')) return request;
+
+  if (import.meta.env.DEV) console.warn(`[mcp] ${request.method} arrived with Accept "${accept}"; completing it`);
+  const headers = new Headers(request.headers);
+  headers.set('accept', MCP_ACCEPT);
+  const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.text();
+  return new Request(request.url, { method: request.method, headers, body });
+}
+
 // Stateless: a fresh server and transport per request, as in the MWC workshop
 export const ALL: APIRoute = async ({ request }) => {
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   await createServer().connect(transport);
-  return transport.handleRequest(request);
+  return transport.handleRequest(await withMcpAccept(request));
 };
