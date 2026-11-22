@@ -58,6 +58,8 @@ The most important file is `packages/data/src/access.ts`: it decides what each p
 
 ## Next steps
 
+- [ ] **Before showing the demo:** add a paid TypeSafe key as `JEV_API_KEY` in `apps/web/.env` so Jev checks new stories (until then, the simple rules run).
+
 1. Replace the sample stories with the answers from the current contribution form.
 2. Deploy `apps/web` to Netlify (adapter already configured) to share a link.
 3. MCP server for Demo University, connected to the chat.
