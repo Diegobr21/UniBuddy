@@ -88,15 +88,19 @@ async function withMcpAccept(request: Request): Promise<Request> {
   const accept = request.headers.get('accept') ?? '';
   if (accept.includes('application/json') && accept.includes('text/event-stream')) return request;
 
-  if (import.meta.env.DEV) console.warn(`[mcp] ${request.method} arrived with Accept "${accept}"; completing it`);
+  if (import.meta.env.DEV) console.warn(`[mcp] POST arrived with Accept "${accept}"; completing it`);
   const headers = new Headers(request.headers);
   headers.set('accept', MCP_ACCEPT);
-  const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.text();
-  return new Request(request.url, { method: request.method, headers, body });
+  return new Request(request.url, { method: 'POST', headers, body: await request.text() });
 }
 
 // Stateless: a fresh server and transport per request, as in the MWC workshop
 export const ALL: APIRoute = async ({ request }) => {
+  // Without sessions there is no event stream to open: MCP clients expect 405 for GET and carry on with POST
+  if (request.method === 'GET' || request.method === 'DELETE') {
+    return new Response('Method not allowed: this MCP server only accepts POST', { status: 405, headers: { allow: 'POST' } });
+  }
+
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   await createServer().connect(transport);
   return transport.handleRequest(await withMcpAccept(request));
